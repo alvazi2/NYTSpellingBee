@@ -1,0 +1,17 @@
+# API key and local config
+config.sh
+
+# Planning artifact with personal game data
+spelling_bee_project_summary.md
+
+# Data (screenshots and database)
+data/
+
+# Generated output
+output/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
