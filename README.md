@@ -1,6 +1,6 @@
 # NYT Spelling Bee Flashcard Generator
 
-A Python CLI tool that turns NYT Spelling Bee screenshots into Anki flashcard decks.
+A Python CLI tool that turns NYT Spelling Bee screenshots into Anki flashcard decks for missed words.
 
 ## What it does
 
