@@ -3,7 +3,7 @@
 cd "$(dirname "$0")"
 source ../config.sh
 
-TEST_DATE="2026-04-26"   # set to the date you want to test (YYYY-MM-DD)
+TEST_DATE="2025-04-20"   # set to the date you want to test (YYYY-MM-DD)
 
 python3 ../src/spelling_bee.py \
   --folder  "$FOLDER" \

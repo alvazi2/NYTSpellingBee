@@ -100,28 +100,34 @@ def derive_letters(extraction: dict) -> list:
 
 # ── Puzzle matching ───────────────────────────────────────────────────────────
 
-def find_matching_puzzle(extraction: dict, db: dict) -> str | None:
+def find_matching_puzzle(extraction: dict, db: dict, file_date: str | None = None) -> str | None:
+    def date_matches(puzzle: dict) -> bool:
+        if file_date is None:
+            return True
+        puzzle_date = puzzle.get('date')
+        return puzzle_date is None or puzzle_date == file_date
+
     # Primary: match by pangram key (O(1))
     if extraction.get('pangram'):
         key = key_from_pangram(extraction['pangram'])
-        if key in db['puzzles']:
+        if key in db['puzzles'] and date_matches(db['puzzles'][key]):
             return key
 
     # Secondary: match by puzzle letters (O(1))
     letters = extraction.get('puzzle_letters') or []
     if len(letters) == 7:
         key = key_from_letters(letters)
-        if key in db['puzzles']:
+        if key in db['puzzles'] and date_matches(db['puzzles'][key]):
             return key
 
-    # Fallback: any word overlap with the last 2 puzzles
+    # Fallback: any word overlap with the last 2 puzzles (same date only)
     new_words = {w.lower() for w in extraction.get('found', []) + extraction.get('missed', [])}
     if not new_words:
         return None
 
     for key in reversed(db['puzzle_order'][-2:]):
         puzzle = db['puzzles'].get(key)
-        if not puzzle:
+        if not puzzle or not date_matches(puzzle):
             continue
         existing = {w.lower() for w in puzzle.get('found', []) + puzzle.get('missed', [])}
         if new_words & existing:
@@ -149,7 +155,7 @@ def infer_pangram(puzzle: dict) -> None:
 
 # ── Puzzle creation / merging ─────────────────────────────────────────────────
 
-def create_puzzle(extraction: dict, filename: str) -> tuple[str, dict]:
+def create_puzzle(extraction: dict, filename: str, file_date: str | None = None) -> tuple[str, dict]:
     letters = derive_letters(extraction)
     pangrams = [extraction['pangram']] if extraction.get('pangram') else []
 
@@ -161,6 +167,7 @@ def create_puzzle(extraction: dict, filename: str) -> tuple[str, dict]:
         key = str(uuid.uuid4())[:8]
 
     puzzle = {
+        'date': file_date,
         'letters': letters,
         'pangrams': pangrams,
         'found': list(extraction.get('found', [])),
@@ -431,14 +438,14 @@ def retrieve_batches(client, db: dict, db_path: Path, folder: Path) -> bool:
                 continue
 
             extraction = extractions[filename]
-            match_key  = find_matching_puzzle(extraction, db)
+            match_key  = find_matching_puzzle(extraction, db, date_str)
 
             if match_key:
                 merge_into_puzzle(db['puzzles'][match_key], extraction, filename)
                 db['processed_files'][filename] = match_key
                 print(f"  {filename}: merged → {match_key}")
             else:
-                key, puzzle = create_puzzle(extraction, filename)
+                key, puzzle = create_puzzle(extraction, filename, date_str)
                 db['puzzles'][key] = puzzle
                 db['puzzle_order'].append(key)
                 db['processed_files'][filename] = key
@@ -558,14 +565,15 @@ def main() -> None:
                 save_db(db, db_path)
                 continue
 
-            match_key = find_matching_puzzle(extraction, db)
+            img_date = date_type.fromtimestamp(img_path.stat().st_birthtime).isoformat()
+            match_key = find_matching_puzzle(extraction, db, img_date)
 
             if match_key:
                 merge_into_puzzle(db['puzzles'][match_key], extraction, img_path.name)
                 db['processed_files'][img_path.name] = match_key
                 print(f"merged → {match_key}")
             else:
-                key, puzzle = create_puzzle(extraction, img_path.name)
+                key, puzzle = create_puzzle(extraction, img_path.name, img_date)
                 db['puzzles'][key] = puzzle
                 db['puzzle_order'].append(key)
                 db['processed_files'][img_path.name] = key
