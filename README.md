@@ -29,6 +29,12 @@ An [Anthropic API key](https://console.anthropic.com) is required. Copy `config.
 
 A synchronous fallback is also available via `scripts/weekly_sync_run.sh`.
 
+To build a local reference database of all past puzzles from nytbee.com (no API key needed):
+
+```bash
+./src/fetch_nytbee.py
+```
+
 ## Documentation
 
 Full architecture, script reference, output format, and card design are documented in [CLAUDE.md](CLAUDE.md).

@@ -47,6 +47,7 @@ Single-script design (`src/spelling_bee.py`) with these logical stages:
    - Primary: pangram → 7-letter key → O(1) dict lookup
    - Secondary: `puzzle_letters` from honeycomb grid → O(1) lookup
    - Fallback: any word overlap against the last 2 puzzles (threshold = 1 word)
+   - All merging is date-scoped: a screenshot is only merged with puzzles sharing the same date (derived from `st_birthtime` in sync mode, or from the batch date in batch mode)
    - After merging, `infer_pangram()` derives the pangram from the word list if the API missed it
 
 4. **Definitions** — `fetch_definitions()` fetches a brief definition for each missed word via the API (batches of 100 words). Results are cached in `db['definitions']`; already-cached words are skipped. Definitions appear on card backs in small italic text below the word.
@@ -96,14 +97,41 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 - Deck hierarchy: `Spelling Bee::Complete`, `Spelling Bee::2 Letters`, … `Spelling Bee::7 Letters`
 - Import via **File → Import** (`Cmd+Shift+I`) in Anki — deck is created automatically
 
-## Database
+## Reference Puzzle Database
+
+`src/fetch_nytbee.py` builds a reference database of all past NYT Spelling Bee puzzles scraped from nytbee.com, stored in `data/nytbee_db.json`. Run it standalone — no API key required.
+
+```bash
+./src/fetch_nytbee.py                   # fetch everything up to the cutoff
+./src/fetch_nytbee.py --from 2024-01-01 # start from a specific date
+```
+
+**Cutoff rule:** puzzles from the current calendar week and the prior week (Mon–Sun) are never fetched, to avoid spoilers. Example: run on any day in the week of Mon May 4 → last fetched date is Sun Apr 26.
+
+Re-running is safe — already-fetched dates are skipped. If interrupted, just re-run.
+
+Each entry in `data/nytbee_db.json` is keyed by date (`"YYYY-MM-DD"`) and contains:
+- `words` — complete sorted list of valid answers
+- `pangrams` — pangram word(s)
+- `puzzle_letters` — all 7 letters (sorted)
+- `center_letter` — the required center letter (derived: appears in every word)
+
+nytbee.com changed its HTML format on 2024-07-28; the fetcher handles both the old (`<ul class="column-list">`) and new (`javascript:void` link) layouts automatically.
+
+## Stats
+
+`src/stats.py` prints statistics derived from `data/spelling_bee_db.json` (word frequencies, letter distributions, etc.). Run directly: `python3 src/stats.py`.
+
+## Databases
 
 `data/spelling_bee_db.json` tracks:
 - `processed_files` — filename → puzzle key (or `null` on permanent error)
-- `puzzles` — keyed by 7-letter string derived from pangram
+- `puzzles` — keyed by 7-letter string derived from pangram; each puzzle includes a `date` field (ISO format, from file creation time or batch date)
 - `puzzle_order` — insertion-ordered list of puzzle keys
 - `pending_batches` — list of in-flight batch jobs with their file lists
 - `definitions` — word → definition string (or `null` if not found); cached across runs
+
+`data/nytbee_db.json` — reference puzzle database; see **Reference Puzzle Database** above.
 
 ## Screenshot Folder
 
