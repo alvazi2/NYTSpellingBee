@@ -94,12 +94,14 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 
 ### Missed-word cards (yellow theme)
 - **Front:** Distinct letters as yellow bubbles (alphabetical order)
-- **Back:** Each word in bold, with definition below in small italic text (if available)
+- **Back:** Each word in bold with its NYT point value `(N pts)`, definition below in small italic text (if available)
 
 ### Pangram cards (purple/gold ★ theme)
 - **Front:** All 7 puzzle letters as bubbles + "★ PANGRAM CARD ★" label
 - **Back:** Pangram word(s) in large bold uppercase
 - One card per puzzle, always included in the 7-letters output
+
+**NYT scoring:** 4-letter words = 1 pt · 5+ letters = 1 pt/letter · pangram bonus = +7 pts
 
 ## Anki CSV Format
 
@@ -120,9 +122,16 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 
 Re-running is safe — already-fetched dates are skipped. Each entry is keyed by date (`"YYYY-MM-DD"`) and contains `words`, `pangrams`, `puzzle_letters`, and `center_letter`.
 
-## Stats
+## Statistics
 
-`src/stats.py` prints statistics derived from `data/spelling_bee_db.json`. Run directly: `python3 src/stats.py`.
+Two Jupyter notebooks in `notebooks/` analyse the data interactively:
+
+| Notebook | Contents |
+|---|---|
+| `notebooks/my_performance.ipynb` | Personal dashboard: scoreboard (incl. points earned and score efficiency), miss rate and score efficiency over time, calendar heatmap, hardest puzzles, most-missed words with point values, pangram performance, word-length and letter-count breakdowns, center-letter analysis, points left on the table |
+| `notebooks/puzzle_analysis.ipynb` | Reference database analysis: puzzle size trends, pangram distribution, letter frequency, puzzle richness by center letter, most recurring words, distinct-letter count distribution by year |
+
+`src/stats.py` is retained for backward compatibility but superseded by the notebooks.
 
 ## Databases
 
@@ -130,7 +139,7 @@ Re-running is safe — already-fetched dates are skipped. Each entry is keyed by
 |---|---|
 | `data/screenshots_db.json` | Raw vision API results, keyed by filename. Each entry has `status` (`ok`/`error`/`pending_batch`), `file_date` (screenshot creation date from `st_birthtime`), `found`, `missed`, `puzzle_letters`, `pangram`, `extracted_at`. Also holds a top-level `pending_batches` list for in-flight batch jobs. |
 | `data/nytbee_db.json` | Reference puzzle database from nytbee.com, keyed by `YYYY-MM-DD`. Each entry has `words`, `pangrams`, `puzzle_letters`, `center_letter`. |
-| `data/merged_db.json` | One entry per matched puzzle date (`YYYY-MM-DD`). Contains `puzzle_letters`, `center_letter`, `pangrams` (from nytbee_db), `found` (union of found words across all screenshots for that date), `missed` (authoritative: nytbee_db words minus found), `screenshots` (filenames). Rebuilt from scratch on every `merge.py` run. |
+| `data/merged_db.json` | One entry per matched puzzle date (`YYYY-MM-DD`). Contains `puzzle_letters`, `center_letter`, `pangrams` (from nytbee_db), `found` (union of found words across all screenshots for that date), `missed` (authoritative: nytbee_db words minus found), `screenshots` (filenames), `points_earned`, `points_possible` (NYT scoring). Rebuilt from scratch on every `merge.py` run. |
 | `data/definitions_db.json` | Word → definition string (or `null`). Cached across runs; already-cached words are skipped. |
 | `data/spelling_bee_db.json` | Legacy database used by `spelling_bee.py` (retained for backward compatibility). |
 

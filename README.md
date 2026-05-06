@@ -10,7 +10,7 @@ A Python pipeline that turns NYT Spelling Bee solution screenshots into Anki fla
 4. Fetches brief definitions for each missed word
 5. Generates Anki-importable CSV files, grouped by the number of distinct letters in each word
 
-Cards come in two types: **missed-word cards** (yellow theme, grouped by distinct letters) and **pangram cards** (purple/gold theme, one per puzzle).
+Cards come in two types: **missed-word cards** (yellow theme, grouped by distinct letters, with NYT point value on the back) and **pangram cards** (purple/gold theme, one per puzzle).
 
 ## Requirements
 
