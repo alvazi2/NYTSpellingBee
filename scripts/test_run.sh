@@ -5,11 +5,11 @@
 cd "$(dirname "$0")"
 source ../config.sh
 
-TEST_DATE=""   # e.g. "2025-04-27" — the date you took the screenshots
+TEST_DATE="2026-05-03"   # e.g. "2025-04-27" — the date you took the screenshots
 
-DATE_ARG=""
+DATE_ARGS=()
 if [[ -n "$TEST_DATE" ]]; then
-  DATE_ARG="--date $TEST_DATE"
+  DATE_ARGS=(--date "$TEST_DATE")
 fi
 
 echo "==> Extracting screenshots (sync)..."
@@ -18,7 +18,7 @@ python3 ../src/extract.py \
   --db      "$SCREENSHOTS_DB" \
   --model   "$MODEL"          \
   --api-key "$API_KEY"        \
-  $DATE_ARG
+  "${DATE_ARGS[@]}"
 
 echo ""
 echo "==> Matching screenshots to puzzles..."
