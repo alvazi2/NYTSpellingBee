@@ -18,6 +18,8 @@ from pathlib import Path
 
 import anthropic
 
+_ROOT = Path(__file__).resolve().parent.parent  # project root (src/../)
+
 DEFINITION_PROMPT = (
     'Return a JSON object mapping each word to a brief definition '
     '(format: "part_of_speech: short definition", max 10 words). '
@@ -153,11 +155,11 @@ def generate_csv(puzzles: list[dict], output_path: Path,
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate Anki CSV files from merged puzzle database")
-    parser.add_argument('--merged-db',      default='../data/merged_db.json',
+    parser.add_argument('--merged-db',      default=str(_ROOT / 'data' / 'merged_db.json'),
                         help='Output of merge.py')
-    parser.add_argument('--definitions-db', default='../data/definitions_db.json',
+    parser.add_argument('--definitions-db', default=str(_ROOT / 'data' / 'definitions_db.json'),
                         help='Definition cache (created if absent)')
-    parser.add_argument('--output',         default='../output',
+    parser.add_argument('--output',         default=str(_ROOT / 'output'),
                         help='Output folder for CSV files')
     parser.add_argument('--model',          default='claude-haiku-4-5',
                         help='Model for fetching definitions')

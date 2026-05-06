@@ -25,7 +25,10 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-MIN_OVERLAP = 3  # minimum word overlap to accept a match
+_ROOT = Path(__file__).resolve().parent.parent  # project root (src/../)
+
+MIN_OVERLAP = 3    # minimum word overlap to accept a match
+MIN_RATIO   = 0.7  # at least 70% of screenshot words must appear in the matched puzzle
 
 
 # ── I/O ───────────────────────────────────────────────────────────────────────
@@ -81,10 +84,12 @@ def match_screenshot(screenshot: dict, nytbee_db: dict,
     if not votes:
         return None, 0
 
-    best_date  = max(votes, key=lambda d: votes[d])
+    # Among equally-scored candidates, prefer the most recent date (closest to
+    # the screenshot) — same letter sets reuse the same word list across dates.
+    best_date  = max(votes, key=lambda d: (votes[d], d))
     best_count = votes[best_date]
 
-    if best_count < MIN_OVERLAP:
+    if best_count < MIN_OVERLAP or best_count / len(all_words) < MIN_RATIO:
         return None, best_count
 
     return best_date, best_count
@@ -95,11 +100,11 @@ def match_screenshot(screenshot: dict, nytbee_db: dict,
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Match screenshots to puzzle database and build merged_db")
-    parser.add_argument('--screenshots-db', default='../data/screenshots_db.json',
+    parser.add_argument('--screenshots-db', default=str(_ROOT / 'data' / 'screenshots_db.json'),
                         help='Output of extract.py')
-    parser.add_argument('--nytbee-db',      default='../data/nytbee_db.json',
+    parser.add_argument('--nytbee-db',      default=str(_ROOT / 'data' / 'nytbee_db.json'),
                         help='Reference puzzle database')
-    parser.add_argument('--output',         default='../data/merged_db.json',
+    parser.add_argument('--output',         default=str(_ROOT / 'data' / 'merged_db.json'),
                         help='Output merged database')
     args = parser.parse_args()
 

@@ -20,6 +20,8 @@ import anthropic
 
 SUPPORTED_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
 
+_ROOT = Path(__file__).resolve().parent.parent  # project root (src/../)
+
 API_PROMPT = """\
 This is a screenshot from the NYT Spelling Bee results screen.
 Please extract:
@@ -223,9 +225,9 @@ def cmd_retrieve(folder: Path, db: dict, db_path: Path,
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Extract words from Spelling Bee screenshots")
-    parser.add_argument('--folder',   default='../data/screenshots',
+    parser.add_argument('--folder',   default=str(_ROOT / 'data' / 'screenshots'),
                         help='Screenshot folder')
-    parser.add_argument('--db',       default='../data/screenshots_db.json',
+    parser.add_argument('--db',       default=str(_ROOT / 'data' / 'screenshots_db.json'),
                         help='Output database path')
     parser.add_argument('--model',    default='claude-haiku-4-5',
                         help='Vision model')
