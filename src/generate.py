@@ -28,6 +28,12 @@ DEFINITION_PROMPT = (
 DEFINITION_BATCH = 100
 
 
+def score_word(word: str, pangrams: set[str]) -> int:
+    """NYT scoring: 4 letters = 1 pt, 5+ letters = 1 pt/letter, pangram = +7."""
+    n = len(word)
+    return (1 if n == 4 else n) + (7 if word.lower() in pangrams else 0)
+
+
 # ── I/O ───────────────────────────────────────────────────────────────────────
 
 def load_json(path: Path) -> dict:
@@ -124,6 +130,8 @@ def generate_csv(puzzles: list[dict], output_path: Path,
             if w.lower() not in seen:
                 seen[w.lower()] = w
 
+    all_pangrams = {pg.lower() for p in puzzles for pg in p.get('pangrams', [])}
+
     for key, words in sorted(group_words(list(seen.values())).items()):
         n = len(key.split())
         if letter_count is not None and n != letter_count:
@@ -132,8 +140,11 @@ def generate_csv(puzzles: list[dict], output_path: Path,
         front   = f'<div style="text-align:center">{bubbles}</div>'
         parts   = []
         for w in words:
+            pts   = score_word(w, all_pangrams)
             defn  = defs_db.get(w.lower())
-            entry = f'<b>{w.capitalize()}</b>'
+            entry = (f'<b>{w.capitalize()}</b>'
+                     f' <span style="font-size:0.8em;color:#AAA;font-weight:normal">'
+                     f'({pts} pt{"s" if pts != 1 else ""})</span>')
             if defn:
                 entry += (f'<br><span style="font-size:0.85em;color:#666;'
                           f'font-style:italic">{defn}</span>')

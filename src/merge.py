@@ -31,6 +31,12 @@ MIN_OVERLAP = 3    # minimum word overlap to accept a match
 MIN_RATIO   = 0.7  # at least 70% of screenshot words must appear in the matched puzzle
 
 
+def score_word(word: str, pangrams: set[str]) -> int:
+    """NYT scoring: 4 letters = 1 pt, 5+ letters = 1 pt/letter, pangram = +7."""
+    n = len(word)
+    return (1 if n == 4 else n) + (7 if word.lower() in pangrams else 0)
+
+
 # ── I/O ───────────────────────────────────────────────────────────────────────
 
 def load_json(path: Path) -> dict:
@@ -138,13 +144,16 @@ def main() -> None:
         nyt    = nytbee_db[date]
         found  = sorted(date_to_found[date])
         missed = [w for w in nyt['words'] if w.lower() not in date_to_found[date]]
+        pg_set = {p.lower() for p in nyt['pangrams']}
         merged_db[date] = {
-            'puzzle_letters': nyt['puzzle_letters'],
-            'center_letter':  nyt['center_letter'],
-            'pangrams':       nyt['pangrams'],
-            'found':          found,
-            'missed':         missed,
-            'screenshots':    sorted(date_to_files[date]),
+            'puzzle_letters':  nyt['puzzle_letters'],
+            'center_letter':   nyt['center_letter'],
+            'pangrams':        nyt['pangrams'],
+            'found':           found,
+            'missed':          missed,
+            'screenshots':     sorted(date_to_files[date]),
+            'points_earned':   sum(score_word(w, pg_set) for w in found),
+            'points_possible': sum(score_word(w, pg_set) for w in nyt['words']),
         }
 
     save_json(merged_db, Path(args.output))
