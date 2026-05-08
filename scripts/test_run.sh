@@ -1,11 +1,10 @@
 #!/bin/zsh
 # Test run — extract, match, and generate for a specific screenshot creation date.
-# Set TEST_DATE to the date you took the screenshots (YYYY-MM-DD), or leave
-# blank to process all unprocessed screenshots.
+# Usage: ./test_run.sh [YYYY-MM-DD]   (omit the date to process all unprocessed screenshots)
 cd "$(dirname "$0")"
 source ../config.sh
 
-TEST_DATE="2026-05-03"   # e.g. "2025-04-27" — the date you took the screenshots
+TEST_DATE="${1:-}"
 
 DATE_ARGS=()
 if [[ -n "$TEST_DATE" ]]; then

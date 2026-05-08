@@ -1,9 +1,13 @@
 #!/bin/zsh
-# Shared configuration — edit this file to update settings
-# Copy this file to config.sh and fill in your values
+# Shared configuration — copy this file to config.sh and fill in your values.
 
-API_KEY="sk-ant-api03-..."          # paste your Anthropic API key here
-FOLDER="../data/screenshots"      # folder containing screenshots
-OUTPUT="../output"               # where to write CSV files
-DB="../data/spelling_bee_db.json" # persistent database file
-MODEL="claude-haiku-4-5"      # vision model (or claude-sonnet-4-6 for higher accuracy)
+API_KEY="sk-ant-api03-..."                    # paste your Anthropic API key here
+FOLDER="../data/screenshots"                  # folder containing screenshots
+OUTPUT="../output"                            # where to write CSV files
+MODEL="claude-haiku-4-5"                      # vision model (or claude-sonnet-4-6 for higher accuracy)
+
+# Pipeline databases
+SCREENSHOTS_DB="../data/screenshots_db.json"  # extract.py output (raw vision API results)
+NYTBEE_DB="../data/nytbee_db.json"            # fetch_nytbee.py reference database
+MERGED_DB="../data/merged_db.json"            # merge.py output (one entry per puzzle date)
+DEFINITIONS_DB="../data/definitions_db.json"  # generate.py definition cache

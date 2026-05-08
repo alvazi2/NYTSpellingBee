@@ -11,12 +11,15 @@ Usage: python generate.py [--merged-db FILE] [--definitions-db FILE]
 """
 
 import argparse
+import html
 import json
 import re
 from collections import defaultdict
 from pathlib import Path
 
 import anthropic
+
+from scoring import score_word
 
 _ROOT = Path(__file__).resolve().parent.parent  # project root (src/../)
 
@@ -26,12 +29,6 @@ DEFINITION_PROMPT = (
     'Use null for unknown words. No other text.\n\nWords: '
 )
 DEFINITION_BATCH = 100
-
-
-def score_word(word: str, pangrams: set[str]) -> int:
-    """NYT scoring: 4 letters = 1 pt, 5+ letters = 1 pt/letter, pangram = +7."""
-    n = len(word)
-    return (1 if n == 4 else n) + (7 if word.lower() in pangrams else 0)
 
 
 # ── I/O ───────────────────────────────────────────────────────────────────────
@@ -77,9 +74,10 @@ def fetch_definitions(words: list[str], defs_db: dict, defs_path: Path,
 
 # ── Card rendering ────────────────────────────────────────────────────────────
 
-def _bubble(letter: str) -> str:
+def _bubble(letter: str, center: bool = False) -> str:
+    bg, fg = ('#7B2FBE', '#FFFFFF') if center else ('#FFD700', '#000000')
     return (
-        f'<span style="background:#FFD700;border-radius:50%;padding:3px 8px;'
+        f'<span style="background:{bg};color:{fg};border-radius:50%;padding:3px 8px;'
         f'margin:2px;font-weight:bold;display:inline-block">{letter.upper()}</span>'
     )
 
@@ -110,7 +108,8 @@ def generate_csv(puzzles: list[dict], output_path: Path,
     if letter_count is None or letter_count == 7:
         for p in puzzles:
             letters = sorted(set(l.upper() for l in p.get('puzzle_letters', [])))
-            bubbles = "".join(_bubble(l) for l in letters)
+            center = (p.get('center_letter') or '').upper()
+            bubbles = "".join(_bubble(l, center=(l == center)) for l in letters)
             front = (
                 f'<div style="text-align:center">'
                 f'<div style="color:#7B2FBE;font-weight:bold;margin-bottom:6px">'
@@ -147,7 +146,7 @@ def generate_csv(puzzles: list[dict], output_path: Path,
                      f'({pts} pt{"s" if pts != 1 else ""})</span>')
             if defn:
                 entry += (f'<br><span style="font-size:0.85em;color:#666;'
-                          f'font-style:italic">{defn}</span>')
+                          f'font-style:italic">{html.escape(defn)}</span>')
             parts.append(f'<div style="margin:4px 0">{entry}</div>')
         back = f'<div style="text-align:center">{"".join(parts)}</div>'
         rows.append((front, back))

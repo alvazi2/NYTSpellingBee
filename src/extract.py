@@ -72,7 +72,8 @@ def _pending_filenames(db: dict) -> set:
 
 
 def _unprocessed_files(folder: Path, db: dict, date: str | None = None) -> list[Path]:
-    handled = set(db['screenshots']) | _pending_filenames(db)
+    ok = {name for name, shot in db['screenshots'].items() if shot.get('status') == 'ok'}
+    handled = ok | _pending_filenames(db)
     files = (
         f for f in folder.iterdir()
         if f.suffix.lower() in SUPPORTED_EXTENSIONS and f.name not in handled

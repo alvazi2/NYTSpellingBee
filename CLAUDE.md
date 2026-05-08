@@ -41,7 +41,7 @@ Three-stage pipeline, each stage a standalone script that can also be run direct
 
 ### Stage 1 — `src/extract.py`
 
-Scans `data/screenshots/` sorted by creation time (`st_birthtime`). Skips files already in `data/screenshots_db.json`. New files are sent to the Anthropic vision API (sync or batch). Stores the raw API response verbatim per file — the vision API is never re-run for already-processed files.
+Scans `data/screenshots/` sorted by creation time (`st_birthtime`). Skips files already extracted successfully (`status: "ok"`) or pending in a batch. Files with `status: "error"` are retried automatically on the next run. New files are sent to the Anthropic vision API (sync or batch). Stores the raw API response verbatim per file — the vision API is never re-run for already-succeeded files.
 
 Supports `--date YYYY-MM-DD` to process only screenshots created on a specific date (useful for testing).
 
@@ -97,7 +97,7 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 - **Back:** Each word in bold with its NYT point value `(N pts)`, definition below in small italic text (if available)
 
 ### Pangram cards (purple/gold ★ theme)
-- **Front:** All 7 puzzle letters as bubbles + "★ PANGRAM CARD ★" label
+- **Front:** All 7 puzzle letters as bubbles + "★ PANGRAM CARD ★" label. The center letter is rendered as a purple bubble; the other six are yellow.
 - **Back:** Pangram word(s) in large bold uppercase
 - One card per puzzle, always included in the 7-letters output
 
@@ -131,8 +131,6 @@ Two Jupyter notebooks in `notebooks/` analyse the data interactively:
 | `notebooks/my_performance.ipynb` | Personal dashboard: scoreboard (incl. points earned and score efficiency), miss rate and score efficiency over time, calendar heatmap, hardest puzzles, most-missed words with point values, pangram performance, word-length and letter-count breakdowns, center-letter analysis, points left on the table |
 | `notebooks/puzzle_analysis.ipynb` | Reference database analysis: puzzle size trends, pangram distribution, letter frequency, puzzle richness by center letter, most recurring words, distinct-letter count distribution by year |
 
-`src/stats.py` is retained for backward compatibility but superseded by the notebooks.
-
 ## Databases
 
 | File | Description |
@@ -141,8 +139,14 @@ Two Jupyter notebooks in `notebooks/` analyse the data interactively:
 | `data/nytbee_db.json` | Reference puzzle database from nytbee.com, keyed by `YYYY-MM-DD`. Each entry has `words`, `pangrams`, `puzzle_letters`, `center_letter`. |
 | `data/merged_db.json` | One entry per matched puzzle date (`YYYY-MM-DD`). Contains `puzzle_letters`, `center_letter`, `pangrams` (from nytbee_db), `found` (union of found words across all screenshots for that date), `missed` (authoritative: nytbee_db words minus found), `screenshots` (filenames), `points_earned`, `points_possible` (NYT scoring). Rebuilt from scratch on every `merge.py` run. |
 | `data/definitions_db.json` | Word → definition string (or `null`). Cached across runs; already-cached words are skipped. |
-| `data/spelling_bee_db.json` | Legacy database used by `spelling_bee.py` (retained for backward compatibility). |
 
 ## Screenshot Folder
 
 `data/screenshots/` contains JPEG files named as either UUIDs or readable words (e.g. ` Bollard.jpeg`). Some named files have a leading space. All files are treated uniformly.
+
+## Future Improvements
+
+Tracked here so they don't get lost between sessions.
+
+- **Stop passing the API key as a CLI argument.** All five shell scripts pass `--api-key "$API_KEY"`, which exposes the key in `ps aux`. The Anthropic SDK already reads `ANTHROPIC_API_KEY` from the environment, so the cleaner pattern is `export ANTHROPIC_API_KEY="$API_KEY"` in each script and dropping `--api-key` from the Python invocations. Deferred for now to avoid churning the scripts.
+- **Add `export` to the assignments in `config.sh`.** They currently work because every Python invocation receives the values through explicit `--flag "$VAR"` arguments. If the API-key change above is ever made, the env-var path requires either `export` or inline assignment (`ANTHROPIC_API_KEY=… python3 …`).

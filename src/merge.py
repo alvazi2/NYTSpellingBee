@@ -25,16 +25,12 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+from scoring import score_word
+
 _ROOT = Path(__file__).resolve().parent.parent  # project root (src/../)
 
 MIN_OVERLAP = 3    # minimum word overlap to accept a match
 MIN_RATIO   = 0.7  # at least 70% of screenshot words must appear in the matched puzzle
-
-
-def score_word(word: str, pangrams: set[str]) -> int:
-    """NYT scoring: 4 letters = 1 pt, 5+ letters = 1 pt/letter, pangram = +7."""
-    n = len(word)
-    return (1 if n == 4 else n) + (7 if word.lower() in pangrams else 0)
 
 
 # ── I/O ───────────────────────────────────────────────────────────────────────
@@ -59,7 +55,9 @@ def build_word_index(nytbee_db: dict) -> dict[str, set[str]]:
 
 
 def match_screenshot(screenshot: dict, nytbee_db: dict,
-                     word_index: dict[str, set[str]]) -> tuple[str | None, int]:
+                     word_index: dict[str, set[str]],
+                     min_overlap: int = MIN_OVERLAP,
+                     min_ratio: float = MIN_RATIO) -> tuple[str | None, int]:
     """Return (matched_date, overlap_count), or (None, best_count) if no match."""
     file_date = screenshot.get('file_date')  # upper bound: puzzle_date <= file_date
     all_words = {w.lower() for w in screenshot.get('found', []) + screenshot.get('missed', [])}
@@ -95,7 +93,7 @@ def match_screenshot(screenshot: dict, nytbee_db: dict,
     best_date  = max(votes, key=lambda d: (votes[d], d))
     best_count = votes[best_date]
 
-    if best_count < MIN_OVERLAP or best_count / len(all_words) < MIN_RATIO:
+    if best_count < min_overlap or best_count / len(all_words) < min_ratio:
         return None, best_count
 
     return best_date, best_count
@@ -112,6 +110,11 @@ def main() -> None:
                         help='Reference puzzle database')
     parser.add_argument('--output',         default=str(_ROOT / 'data' / 'merged_db.json'),
                         help='Output merged database')
+    parser.add_argument('--min-overlap',    type=int, default=MIN_OVERLAP,
+                        help=f'Minimum word overlap to accept a match (default: {MIN_OVERLAP})')
+    parser.add_argument('--min-ratio',      type=float, default=MIN_RATIO,
+                        help=f'Minimum fraction of screenshot words present in the matched puzzle '
+                             f'(default: {MIN_RATIO})')
     args = parser.parse_args()
 
     screenshots_db = load_json(Path(args.screenshots_db))
@@ -126,7 +129,8 @@ def main() -> None:
         if shot.get('status') != 'ok':
             continue
 
-        date, count = match_screenshot(shot, nytbee_db, word_index)
+        date, count = match_screenshot(shot, nytbee_db, word_index,
+                                        args.min_overlap, args.min_ratio)
 
         if date is None:
             print(f"  SKIP {filename}: no puzzle match (best overlap: {count} word(s))")

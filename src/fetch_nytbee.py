@@ -11,6 +11,7 @@ Re-running is safe — already-fetched dates are skipped.
 import argparse
 import json
 import re
+import socket
 import time
 import urllib.error
 import urllib.request
@@ -22,6 +23,8 @@ DB_PATH = Path(__file__).parent.parent / 'data' / 'nytbee_db.json'
 BASE_URL = 'https://www.nytbee.com/Bee_{}.html'
 SITE_START_DATE = date(2019, 5, 17)
 FETCH_DELAY = 1.0  # seconds between requests, to be polite
+RETRY_ATTEMPTS = 3  # total attempts on transient failures (5xx, timeout, network error)
+RETRY_BACKOFF = 3.0  # base backoff seconds between retries (linear: 3s, 6s, …)
 
 
 # ── Database ──────────────────────────────────────────────────────────────────
@@ -124,16 +127,34 @@ def parse_html(html):
 
 # ── Fetching ──────────────────────────────────────────────────────────────────
 
+def _fetch_html(url):
+    """Fetch URL with retries on transient failures. Returns (html, None), (None, '404'), or raises."""
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    last_err = None
+    for attempt in range(1, RETRY_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return resp.read().decode('utf-8'), None
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None, '404'
+            if e.code < 500 or attempt == RETRY_ATTEMPTS:
+                raise
+            last_err = e
+        except (urllib.error.URLError, socket.timeout, TimeoutError) as e:
+            if attempt == RETRY_ATTEMPTS:
+                raise
+            last_err = e
+        wait = RETRY_BACKOFF * attempt
+        print(f'    transient error ({last_err}); retrying in {wait:.0f}s...')
+        time.sleep(wait)
+
+
 def fetch_puzzle(d):
     url = BASE_URL.format(d.strftime('%Y%m%d'))
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            html = resp.read().decode('utf-8')
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
+    html, status = _fetch_html(url)
+    if status == '404':
+        return None
 
     raw_words, raw_pangrams = parse_html(html)
     words = sorted(set(raw_words))
