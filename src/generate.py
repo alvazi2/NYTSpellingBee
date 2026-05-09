@@ -174,7 +174,11 @@ def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
         count = missed_ctr[word]
         key = distinct_key(word)
         bubbles = "".join(_bubble(l) for l in key.split())
-        front = f'<div style="text-align:center">{bubbles}</div>'
+        front = (
+            f'<div style="text-align:center">'
+            f'<div style="color:#CC3300;font-weight:bold;margin-bottom:6px">'
+            f'★ MOST MISSED ★</div>{bubbles}</div>'
+        )
 
         pts = score_word(word, all_pangrams)
         defn = defs_db.get(word)
