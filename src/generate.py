@@ -14,7 +14,7 @@ import argparse
 import html
 import json
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import anthropic
@@ -160,6 +160,43 @@ def generate_csv(puzzles: list[dict], output_path: Path,
     return len(rows)
 
 
+def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
+                             top_n: int, defs_db: dict) -> int:
+    """Write a Most Missed deck — one card per word, ordered by miss frequency."""
+    missed_ctr: Counter = Counter(
+        w.lower() for p in puzzles for w in p.get('missed', [])
+    )
+    top_words = [w for w, _ in missed_ctr.most_common(top_n)]
+    all_pangrams = {pg.lower() for p in puzzles for pg in p.get('pangrams', [])}
+
+    rows: list[tuple[str, str]] = []
+    for word in top_words:
+        count = missed_ctr[word]
+        key = distinct_key(word)
+        bubbles = "".join(_bubble(l) for l in key.split())
+        front = f'<div style="text-align:center">{bubbles}</div>'
+
+        pts = score_word(word, all_pangrams)
+        defn = defs_db.get(word)
+        entry = (f'<b>{word.capitalize()}</b>'
+                 f' <span style="font-size:0.8em;color:#AAA;font-weight:normal">'
+                 f'({pts} pt{"s" if pts != 1 else ""})'
+                 f' &middot; missed {count}&times;</span>')
+        if defn:
+            entry += (f'<br><span style="font-size:0.85em;color:#666;'
+                      f'font-style:italic">{html.escape(defn)}</span>')
+        back = f'<div style="text-align:center"><div style="margin:4px 0">{entry}</div></div>'
+        rows.append((front, back))
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write("#separator:tab\n#html:true\n")
+        f.write("#deck:Spelling Bee::Most Missed\n")
+        for front, back in rows:
+            f.write(f"{front}\t{back}\n")
+
+    return len(rows)
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -173,7 +210,9 @@ def main() -> None:
                         help='Output folder for CSV files')
     parser.add_argument('--model',          default='claude-haiku-4-5',
                         help='Model for fetching definitions')
-    parser.add_argument('--api-key',        help='Anthropic API key')
+    parser.add_argument('--api-key',          help='Anthropic API key')
+    parser.add_argument('--most-missed-count', type=int, default=25,
+                        help='Number of most-missed words to include (default: 25)')
     args = parser.parse_args()
 
     merged_db = load_json(Path(args.merged_db))
@@ -203,6 +242,13 @@ def main() -> None:
             print(f"  spelling_bee_{n}_letters.csv  ({count} cards)")
         else:
             path.unlink(missing_ok=True)
+
+    mm_path  = output / 'spelling_bee_most_missed.csv'
+    mm_count = generate_most_missed_csv(puzzles, mm_path, args.most_missed_count, defs_db)
+    if mm_count:
+        print(f"  spelling_bee_most_missed.csv  ({mm_count} cards)")
+    else:
+        mm_path.unlink(missing_ok=True)
 
     print("Done.")
 
