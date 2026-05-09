@@ -162,7 +162,7 @@ def generate_csv(puzzles: list[dict], output_path: Path,
 
 def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
                              top_n: int, defs_db: dict) -> int:
-    """Write a Most Missed deck — one card per word, ordered by miss frequency."""
+    """Write a Most Missed deck — words grouped by distinct letter set."""
     missed_ctr: Counter = Counter(
         w.lower() for p in puzzles for w in p.get('missed', [])
     )
@@ -170,26 +170,27 @@ def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
     all_pangrams = {pg.lower() for p in puzzles for pg in p.get('pangrams', [])}
 
     rows: list[tuple[str, str]] = []
-    for word in top_words:
-        count = missed_ctr[word]
-        key = distinct_key(word)
+    for key, words in sorted(group_words(top_words).items()):
         bubbles = "".join(_bubble(l) for l in key.split())
         front = (
             f'<div style="text-align:center">'
             f'<div style="color:#CC3300;font-weight:bold;margin-bottom:6px">'
             f'★ MOST MISSED ★</div>{bubbles}</div>'
         )
-
-        pts = score_word(word, all_pangrams)
-        defn = defs_db.get(word)
-        entry = (f'<b>{word.capitalize()}</b>'
-                 f' <span style="font-size:0.8em;color:#AAA;font-weight:normal">'
-                 f'({pts} pt{"s" if pts != 1 else ""})'
-                 f' &middot; missed {count}&times;</span>')
-        if defn:
-            entry += (f'<br><span style="font-size:0.85em;color:#666;'
-                      f'font-style:italic">{html.escape(defn)}</span>')
-        back = f'<div style="text-align:center"><div style="margin:4px 0">{entry}</div></div>'
+        parts = []
+        for w in words:
+            pts  = score_word(w, all_pangrams)
+            defn = defs_db.get(w)
+            count = missed_ctr[w]
+            entry = (f'<b>{w.capitalize()}</b>'
+                     f' <span style="font-size:0.8em;color:#AAA;font-weight:normal">'
+                     f'({pts} pt{"s" if pts != 1 else ""})'
+                     f' &middot; missed {count}&times;</span>')
+            if defn:
+                entry += (f'<br><span style="font-size:0.85em;color:#666;'
+                          f'font-style:italic">{html.escape(defn)}</span>')
+            parts.append(f'<div style="margin:4px 0">{entry}</div>')
+        back = f'<div style="text-align:center">{"".join(parts)}</div>'
         rows.append((front, back))
 
     with open(output_path, 'w', encoding='utf-8') as f:
