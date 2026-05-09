@@ -87,6 +87,7 @@ Each run of `generate.py` writes Anki CSV files to `output/`:
 | `output/spelling_bee_5_letters.csv` | Missed-word cards with 5 distinct letters |
 | `output/spelling_bee_6_letters.csv` | Missed-word cards with 6 distinct letters |
 | `output/spelling_bee_7_letters.csv` | Pangram cards + missed-word cards with 7 distinct letters |
+| `output/spelling_bee_most_missed.csv` | Top 25 most-frequently-missed words, grouped by distinct letter set |
 
 Files for letter counts with no cards are skipped and deleted if previously generated.
 
@@ -95,6 +96,12 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 ### Missed-word cards (yellow theme)
 - **Front:** Distinct letters as yellow bubbles (alphabetical order)
 - **Back:** Each word in bold with its NYT point value `(N pts)`, definition below in small italic text (if available)
+
+### Most-missed cards (red ★ theme)
+- **Front:** Distinct letters as yellow bubbles + "★ MOST MISSED ★" label in red
+- **Back:** Each word in bold with its NYT point value, miss count (`missed N×`), and definition
+- Words grouped by distinct letter set, top 25 most-missed words across all puzzles
+- Override count with `--most-missed-count N`
 
 ### Pangram cards (purple/gold ★ theme)
 - **Front:** All 7 puzzle letters as bubbles + "★ PANGRAM CARD ★" label. The center letter is rendered as a purple bubble; the other six are yellow.
@@ -106,7 +113,7 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 ## Anki CSV Format
 
 - Headers: `#separator:tab`, `#html:true`, `#deck:Spelling Bee::<name>`
-- Deck hierarchy: `Spelling Bee::Complete`, `Spelling Bee::2 Letters`, … `Spelling Bee::7 Letters`
+- Deck hierarchy: `Spelling Bee::Complete`, `Spelling Bee::2 Letters`, … `Spelling Bee::7 Letters`, `Spelling Bee::Most Missed`
 - Import via **File → Import** (`Cmd+Shift+I`) in Anki — deck is created automatically
 
 ## Reference Puzzle Database
