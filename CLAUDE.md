@@ -129,6 +129,10 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 
 Re-running is safe — already-fetched dates are skipped. Each entry is keyed by date (`"YYYY-MM-DD"`) and contains `words`, `pangrams`, `puzzle_letters`, and `center_letter`.
 
+## Notebooks
+
+Notebook outputs are stripped automatically on `git add` via `nbstripout` (configured in `.gitattributes`). No manual clearing needed — but `nbstripout --install` must be run once per clone to activate the git filter.
+
 ## Statistics
 
 Two Jupyter notebooks in `notebooks/` analyse the data interactively:
