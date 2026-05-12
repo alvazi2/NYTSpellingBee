@@ -95,11 +95,11 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 
 ### Missed-word cards (yellow theme)
 - **Front:** Distinct letters as yellow bubbles (alphabetical order)
-- **Back:** Each word in bold with its NYT point value `(N pts)`, definition below in small italic text (if available)
+- **Back:** Each word in bold with its NYT point value `(N pts)`, definition below in small italic text (if available); separated by a horizontal rule, up to 10 words you actually found with the same distinct letter set ("You found: …") as a memory anchor
 
 ### Most-missed cards (red ★ theme)
 - **Front:** Distinct letters as yellow bubbles + "★ MOST MISSED ★" label in red
-- **Back:** Each word in bold with its NYT point value, miss count (`missed N×`), and definition
+- **Back:** Each word in bold with its NYT point value, miss count (`missed N×`), and definition; separated by a horizontal rule, up to 10 found words with the same distinct letter set ("You found: …")
 - Words grouped by distinct letter set, top 25 most-missed words across all puzzles
 - Override count with `--most-missed-count N`
 

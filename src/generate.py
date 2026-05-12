@@ -131,6 +131,11 @@ def generate_csv(puzzles: list[dict], output_path: Path,
 
     all_pangrams = {pg.lower() for p in puzzles for pg in p.get('pangrams', [])}
 
+    found_by_key: dict[str, set[str]] = defaultdict(set)
+    for p in puzzles:
+        for w in p.get('found', []):
+            found_by_key[distinct_key(w)].add(w.lower())
+
     for key, words in sorted(group_words(list(seen.values())).items()):
         n = len(key.split())
         if letter_count is not None and n != letter_count:
@@ -148,7 +153,13 @@ def generate_csv(puzzles: list[dict], output_path: Path,
                 entry += (f'<br><span style="font-size:0.85em;color:#666;'
                           f'font-style:italic">{html.escape(defn)}</span>')
             parts.append(f'<div style="margin:4px 0">{entry}</div>')
-        back = f'<div style="text-align:center">{"".join(parts)}</div>'
+        found_sample = sorted(found_by_key.get(key, set()))[:10]
+        found_html = (
+            '<hr style="border:none;border-top:1px solid #DDD;margin:10px 0">'
+            '<div style="font-size:0.8em;color:#888">'
+            'You found: ' + ', '.join(w.capitalize() for w in found_sample) + '</div>'
+        ) if found_sample else ''
+        back = f'<div style="text-align:center">{"".join(parts)}{found_html}</div>'
         rows.append((front, back))
 
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -168,6 +179,11 @@ def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
     )
     top_words = [w for w, _ in missed_ctr.most_common(top_n)]
     all_pangrams = {pg.lower() for p in puzzles for pg in p.get('pangrams', [])}
+
+    found_by_key: dict[str, set[str]] = defaultdict(set)
+    for p in puzzles:
+        for w in p.get('found', []):
+            found_by_key[distinct_key(w)].add(w.lower())
 
     rows: list[tuple[str, str]] = []
     for key, words in sorted(group_words(top_words).items()):
@@ -190,7 +206,13 @@ def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
                 entry += (f'<br><span style="font-size:0.85em;color:#666;'
                           f'font-style:italic">{html.escape(defn)}</span>')
             parts.append(f'<div style="margin:4px 0">{entry}</div>')
-        back = f'<div style="text-align:center">{"".join(parts)}</div>'
+        found_sample = sorted(found_by_key.get(key, set()))[:10]
+        found_html = (
+            '<hr style="border:none;border-top:1px solid #DDD;margin:10px 0">'
+            '<div style="font-size:0.8em;color:#888">'
+            'You found: ' + ', '.join(w.capitalize() for w in found_sample) + '</div>'
+        ) if found_sample else ''
+        back = f'<div style="text-align:center">{"".join(parts)}{found_html}</div>'
         rows.append((front, back))
 
     with open(output_path, 'w', encoding='utf-8') as f:
