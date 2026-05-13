@@ -25,6 +25,7 @@ Located in `scripts/`. Run from anywhere — each script `cd`s to its own direct
 | `scripts/weekly_sync_run.sh` | Synchronous fallback — update nytbee_db, extract, merge, generate immediately |
 | `scripts/rebuild_output.sh` | Re-run merge + generate from existing databases (no vision API calls) |
 | `scripts/test_run.sh` | Extract a specific date's screenshots, then merge and generate |
+| `scripts/import_to_anki.sh` | Open each output CSV in Anki's import dialog in sequence; beeps when ready — user clicks Import, script advances to the next file |
 
 **Recommended weekly workflow:**
 ```bash
