@@ -63,7 +63,7 @@ Screenshots skipped due to no match (e.g. puzzles too recent for nytbee_db) are 
 
 ### Stage 3 — `src/generate.py`
 
-Reads `data/merged_db.json`. Fetches definitions for all missed words via the API (batches of 100 words), cached in `data/definitions_db.json`. Writes Anki CSV files to `output/`.
+Reads `data/merged_db.json`. Fetches a definition and a memorable example sentence for each missed word via the API (batches of 50 words), cached in `data/definitions_db.json`. Writes Anki CSV files to `output/`.
 
 ## Batch API Workflow
 
@@ -96,11 +96,11 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 
 ### Missed-word cards (yellow theme)
 - **Front:** Distinct letters as yellow bubbles (alphabetical order)
-- **Back:** Each word in bold with its NYT point value `(N pts)`, definition below in small italic text (if available); separated by a horizontal rule, up to 10 words you actually found with the same distinct letter set ("You found: …") as a memory anchor
+- **Back:** Each word in bold with its NYT point value `(N pts)`, definition below in small italic text (if available), and a memorable example sentence in quotes with the target word bolded; separated by a horizontal rule, up to 10 words you actually found with the same distinct letter set ("You found: …") as a memory anchor
 
 ### Most-missed cards (red ★ theme)
 - **Front:** Distinct letters as yellow bubbles + "★ MOST MISSED ★" label in red
-- **Back:** Each word in bold with its NYT point value, miss count (`missed N×`), and definition; separated by a horizontal rule, up to 10 found words with the same distinct letter set ("You found: …")
+- **Back:** Each word in bold with its NYT point value, miss count (`missed N×`), definition, and a memorable example sentence; separated by a horizontal rule, up to 10 found words with the same distinct letter set ("You found: …")
 - Words grouped by distinct letter set, top 25 most-missed words across all puzzles
 - Override count with `--most-missed-count N`
 
@@ -150,7 +150,7 @@ Two Jupyter notebooks in `notebooks/` analyse the data interactively:
 | `data/screenshots_db.json` | Raw vision API results, keyed by filename. Each entry has `status` (`ok`/`error`/`pending_batch`), `file_date` (screenshot creation date from `st_birthtime`), `found`, `missed`, `puzzle_letters`, `pangram`, `extracted_at`. Also holds a top-level `pending_batches` list for in-flight batch jobs. |
 | `data/nytbee_db.json` | Reference puzzle database from nytbee.com, keyed by `YYYY-MM-DD`. Each entry has `words`, `pangrams`, `puzzle_letters`, `center_letter`. |
 | `data/merged_db.json` | One entry per matched puzzle date (`YYYY-MM-DD`). Contains `puzzle_letters`, `center_letter`, `pangrams` (from nytbee_db), `found` (union of found words across all screenshots for that date), `missed` (authoritative: nytbee_db words minus found), `screenshots` (filenames), `points_earned`, `points_possible` (NYT scoring). Rebuilt from scratch on every `merge.py` run. |
-| `data/definitions_db.json` | Word → definition string (or `null`). Cached across runs; already-cached words are skipped. |
+| `data/definitions_db.json` | Word → `{"definition": str\|null, "example": str\|null}`. The example sentence wraps the target word in `**asterisks**` (rendered as bold on the card). Legacy string entries are migrated transparently on the next run. Cached across runs; already-cached words are skipped. |
 
 ## Screenshot Folder
 

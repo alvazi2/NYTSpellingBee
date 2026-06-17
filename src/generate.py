@@ -24,11 +24,16 @@ from scoring import score_word
 _ROOT = Path(__file__).resolve().parent.parent  # project root (src/../)
 
 DEFINITION_PROMPT = (
-    'Return a JSON object mapping each word to a brief definition '
-    '(format: "part_of_speech: short definition", max 10 words). '
-    'Use null for unknown words. No other text.\n\nWords: '
+    'Return a JSON object mapping each word to an object with two fields:\n'
+    '  "definition": "part_of_speech: short definition" (max 10 words)\n'
+    '  "example": a single vivid, memorable sentence (max 18 words) '
+    'that uses the word naturally and gives strong contextual cues that '
+    'aid memorization. Wrap the word (or its natural inflection) in '
+    '**double asterisks** so it is easy to spot.\n'
+    'For unknown words, use {"definition": null, "example": null}. '
+    'No other text.\n\nWords: '
 )
-DEFINITION_BATCH = 100
+DEFINITION_BATCH = 50
 
 
 # ── I/O ───────────────────────────────────────────────────────────────────────
@@ -43,9 +48,16 @@ def save_json(data: dict, path: Path) -> None:
 
 # ── Definitions ───────────────────────────────────────────────────────────────
 
+def _needs_fetch(entry) -> bool:
+    """True if the cache entry is missing, legacy-shaped, or has no example yet."""
+    return not isinstance(entry, dict) or 'example' not in entry
+
+
 def fetch_definitions(words: list[str], defs_db: dict, defs_path: Path,
                       client: anthropic.Anthropic, model: str) -> None:
-    missing = list(dict.fromkeys(w.lower() for w in words if w.lower() not in defs_db))
+    missing = list(dict.fromkeys(
+        w.lower() for w in words if _needs_fetch(defs_db.get(w.lower()))
+    ))
     if not missing:
         return
 
@@ -57,19 +69,61 @@ def fetch_definitions(words: list[str], defs_db: dict, defs_path: Path,
         batch_num = i // DEFINITION_BATCH + 1
         try:
             msg = client.messages.create(
-                model=model, max_tokens=2048,
+                model=model, max_tokens=4096,
                 messages=[{"role": "user",
                            "content": DEFINITION_PROMPT + json.dumps(batch)}],
             )
             text = next(b for b in msg.content if b.type == 'text').text.strip()
             text = re.sub(r'^```(?:json)?\s*', '', text)
             text = re.sub(r'\s*```$', '', text)
-            for word, defn in json.loads(text).items():
-                defs_db[word.lower()] = defn
+            for word, info in json.loads(text).items():
+                key = word.lower()
+                if isinstance(info, dict):
+                    defs_db[key] = {
+                        'definition': info.get('definition'),
+                        'example':    info.get('example'),
+                    }
+                else:
+                    defs_db[key] = {'definition': info, 'example': None}
             print(f"  batch {batch_num}/{total} done")
         except Exception as e:
             print(f"  definition batch {batch_num}/{total} error: {e}")
         save_json(defs_db, defs_path)
+
+
+# ── Cache accessors ───────────────────────────────────────────────────────────
+
+def get_definition(defs_db: dict, word: str) -> str | None:
+    entry = defs_db.get(word.lower())
+    if isinstance(entry, dict):
+        return entry.get('definition')
+    return entry  # legacy string entry
+
+
+def get_example(defs_db: dict, word: str) -> str | None:
+    entry = defs_db.get(word.lower())
+    if isinstance(entry, dict):
+        return entry.get('example')
+    return None
+
+
+def render_example(example: str) -> str:
+    """Convert **bold** markdown to <b> tags and escape the rest as HTML."""
+    parts = re.split(r'\*\*(.+?)\*\*', example)
+    out   = []
+    for i, part in enumerate(parts):
+        if i % 2 == 0:
+            out.append(html.escape(part))
+        else:
+            out.append(f'<b>{html.escape(part)}</b>')
+    return ''.join(out)
+
+
+def example_html(example: str | None) -> str:
+    if not example:
+        return ''
+    return (f'<br><span style="font-size:0.8em;color:#888;font-style:italic">'
+            f'&ldquo;{render_example(example)}&rdquo;</span>')
 
 
 # ── Card rendering ────────────────────────────────────────────────────────────
@@ -145,14 +199,16 @@ def generate_csv(puzzles: list[dict], output_path: Path,
         parts   = []
         for w in words:
             pts   = score_word(w, all_pangrams)
-            defn  = defs_db.get(w.lower())
+            defn  = get_definition(defs_db, w)
+            ex    = get_example(defs_db, w)
             entry = (f'<b>{w.capitalize()}</b>'
                      f' <span style="font-size:0.8em;color:#AAA;font-weight:normal">'
                      f'({pts} pt{"s" if pts != 1 else ""})</span>')
             if defn:
                 entry += (f'<br><span style="font-size:0.85em;color:#666;'
                           f'font-style:italic">{html.escape(defn)}</span>')
-            parts.append(f'<div style="margin:4px 0">{entry}</div>')
+            entry += example_html(ex)
+            parts.append(f'<div style="margin:6px 0">{entry}</div>')
         found_sample = sorted(found_by_key.get(key, set()))[:10]
         found_html = (
             '<hr style="border:none;border-top:1px solid #DDD;margin:10px 0">'
@@ -196,7 +252,8 @@ def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
         parts = []
         for w in words:
             pts  = score_word(w, all_pangrams)
-            defn = defs_db.get(w)
+            defn = get_definition(defs_db, w)
+            ex   = get_example(defs_db, w)
             count = missed_ctr[w]
             entry = (f'<b>{w.capitalize()}</b>'
                      f' <span style="font-size:0.8em;color:#AAA;font-weight:normal">'
@@ -205,7 +262,8 @@ def generate_most_missed_csv(puzzles: list[dict], output_path: Path,
             if defn:
                 entry += (f'<br><span style="font-size:0.85em;color:#666;'
                           f'font-style:italic">{html.escape(defn)}</span>')
-            parts.append(f'<div style="margin:4px 0">{entry}</div>')
+            entry += example_html(ex)
+            parts.append(f'<div style="margin:6px 0">{entry}</div>')
         found_sample = sorted(found_by_key.get(key, set()))[:10]
         found_html = (
             '<hr style="border:none;border-top:1px solid #DDD;margin:10px 0">'
