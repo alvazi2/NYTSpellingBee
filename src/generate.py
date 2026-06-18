@@ -296,8 +296,8 @@ def main() -> None:
     parser.add_argument('--model',          default='claude-haiku-4-5',
                         help='Model for fetching definitions')
     parser.add_argument('--api-key',          help='Anthropic API key')
-    parser.add_argument('--most-missed-count', type=int, default=25,
-                        help='Number of most-missed words to include (default: 25)')
+    parser.add_argument('--most-missed-count', type=int, default=30,
+                        help='Number of most-missed words to include (default: 30)')
     args = parser.parse_args()
 
     merged_db = load_json(Path(args.merged_db))

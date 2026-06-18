@@ -88,7 +88,7 @@ Each run of `generate.py` writes Anki CSV files to `output/`:
 | `output/spelling_bee_5_letters.csv` | Missed-word cards with 5 distinct letters |
 | `output/spelling_bee_6_letters.csv` | Missed-word cards with 6 distinct letters |
 | `output/spelling_bee_7_letters.csv` | Pangram cards + missed-word cards with 7 distinct letters |
-| `output/spelling_bee_most_missed.csv` | Top 25 most-frequently-missed words, grouped by distinct letter set |
+| `output/spelling_bee_most_missed.csv` | Top 30 most-frequently-missed words, grouped by distinct letter set |
 
 Files for letter counts with no cards are skipped and deleted if previously generated.
 
@@ -101,7 +101,7 @@ Files for letter counts with no cards are skipped and deleted if previously gene
 ### Most-missed cards (red ★ theme)
 - **Front:** Distinct letters as yellow bubbles + "★ MOST MISSED ★" label in red
 - **Back:** Each word in bold with its NYT point value, miss count (`missed N×`), definition, and a memorable example sentence; separated by a horizontal rule, up to 10 found words with the same distinct letter set ("You found: …")
-- Words grouped by distinct letter set, top 25 most-missed words across all puzzles
+- Words grouped by distinct letter set, top 30 most-missed words across all puzzles
 - Override count with `--most-missed-count N`
 
 ### Pangram cards (purple/gold ★ theme)
