@@ -163,7 +163,8 @@ def cmd_submit(folder: Path, db: dict, db_path: Path,
     })
     save_db(db, db_path)
     print(f"Submitted batch {batch.id} — {len(files)} screenshot(s).")
-    print("Run with --retrieve once complete (usually a few hours).")
+    print("Once complete (usually a few hours), run scripts/weekly_batch_retrieve.sh")
+    print("(or extract.py --retrieve if invoking directly) to collect the results.")
 
 
 def cmd_retrieve(folder: Path, db: dict, db_path: Path,
