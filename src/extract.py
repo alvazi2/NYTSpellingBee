@@ -186,6 +186,12 @@ def cmd_retrieve(folder: Path, db: dict, db_path: Path,
             remaining.append(batch_info)
             continue
 
+        if batch.results_url is None:
+            # Results are only retained for 29 days; drop the batch so its
+            # files are treated as unprocessed and resubmitted next time.
+            print(f"results expired — {len(batch_info['files'])} files will be resubmitted")
+            continue
+
         print("complete")
         index_to_name = {f"req_{i:04d}": name for i, name in enumerate(batch_info['files'])}
         now = datetime.now().isoformat()
